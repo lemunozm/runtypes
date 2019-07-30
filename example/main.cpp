@@ -8,92 +8,197 @@ namespace rt
 //=========================== COMMON =============================
 enum class Kind
 {
-    Int8, Int16, Int32, Int64, Float, Double, Struct
+    None,
+    Bool, Char,
+    Int8, Int16, Int32, Int64,
+    Uint8, Uint16, Uint32, Uint64,
+    Float, Double,
+    Array, Sequence, Map, Struct,
 };
-
-template<typename I>
-class Reference
-{
-protected:
-    template<typename... Args>
-    Reference(Args... args) : impl(std::make_shared<I>(args...)) {}
-
-    std::shared_ptr<I> impl;
-};
-
 
 //=========================== TYPE =============================
-struct TypeImpl
-{
-    TypeImpl(Kind kind, int32_t size) : kind(kind), size(size) {}
-
-    Kind kind;
-    int32_t size;
-};
-
+class TypeImpl;
 template<typename Impl>
-class TypeRef : public Reference<Impl>
+class TypeRef
 {
 public:
-    TypeRef(Kind kind, int32_t size) : Reference<Impl>(kind, size) {}
+    Kind kind() const { return this->impl->kind; }
+    size_t memory_size() const { return this->impl->memory_size; }
 
-    Kind& kind() { return this->impl->kind; } //we I need this?
-    uint32_t& size() { return this->impl->size; } //we I need this?
+    operator TypeRef<TypeImpl>&()
+    {
+        return reinterpret_cast<TypeRef<TypeImpl>&>(*this);
+    }
+
+    operator const TypeRef<TypeImpl>&() const
+    {
+        return reinterpret_cast<const TypeRef<TypeImpl>&>(*this);
+    }
+
+protected:
+    template<typename... Args>
+    TypeRef(Kind kind, size_t memory_size, Args&&... args)
+        : impl(std::make_shared<Impl>(kind, memory_size, std::forward<Args>(args)...)) {}
+
+    std::shared_ptr<Impl> impl;
+
+private:
+    void* operator new(size_t);
 };
 
+struct TypeImpl
+{
+    TypeImpl(Kind kind, size_t memory_size)
+        : kind(kind), memory_size(memory_size) {}
+
+    Kind kind;
+    size_t memory_size;
+};
+
+template class TypeRef<TypeImpl>;
 typedef TypeRef<TypeImpl> Type;
 
 
-//=========================== MEMBER =============================
-class Member
+//=========================== PRIMITIVES =============================
+template<typename T>
+struct PrimitiveKind { static constexpr Kind kind = Kind::None; };
+
+template<typename T>
+class Primitive : public Type
 {
-    Type type;
-    int32_t offset;
+public:
+    Primitive() : Type(PrimitiveKind<T>::kind, sizeof(T)) {};
 };
 
-//=========================== STRUCT =============================
-struct StructTypeImpl : TypeImpl
+#define RT_CREATE_PRIMITIVE_TYPE(CTYPE, KIND) \
+    template<> \
+    struct PrimitiveKind<CTYPE> { static constexpr Kind kind = Kind::KIND; };
+
+RT_CREATE_PRIMITIVE_TYPE(uint8_t, Uint8);
+RT_CREATE_PRIMITIVE_TYPE(uint16_t, Uint16);
+RT_CREATE_PRIMITIVE_TYPE(uint32_t, Uint32);
+
+//=========================== Collection  =============================
+template<typename Impl>
+class CollectionRef : public TypeRef<Impl>
 {
-    StructTypeImpl() : TypeImpl(Kind::Struct, 0u) {}
+protected:
+    CollectionRef(Kind kind, size_t memory_size, const Type& inner_type, size_t size)
+        : TypeRef<Impl>(kind, memory_size, inner_type, size) {};
+
+public:
+    const Type& inner_type() const { return this->impl->inner_type; }
+    size_t size() const { return this->impl->size; }
+};
+
+struct CollectionImpl : TypeImpl
+{
+    CollectionImpl(Kind kind, size_t memory_size, const Type& inner_type, size_t size)
+        : TypeImpl(kind, memory_size)
+        , inner_type(inner_type)
+        , size(size) {}
+
+    Type inner_type;
+    size_t size;
+};
+
+template class CollectionRef<CollectionImpl>;
+typedef CollectionRef<CollectionImpl> Collection;
+
+
+//=========================== ARRAY =============================
+
+class Array : public Collection
+{
+public:
+    Array(const Type& inner_type, size_t size)
+        : Collection(Kind::Array, inner_type.memory_size() * size, inner_type, size) {};
+};
+
+
+//=========================== SEQUENCE =============================
+class Sequence : public Collection
+{
+public:
+    Sequence(const Type& inner_type, size_t size)
+        : Collection(Kind::Sequence, inner_type.memory_size() * size + sizeof(size_t), inner_type, size) {};
+};
+
+
+//=========================== MEMBER =============================
+struct Member
+{
+    Member(const Type& type, size_t offset)
+        : type(type), offset(offset) {}
+
+    Type type;
+    size_t offset;
+};
+
+
+//=========================== STRUCT =============================
+template<typename Impl>
+class StructRef : public TypeRef<Impl>
+{
+protected:
+    template<typename... Args>
+    StructRef(const std::string& name, Args&&... args)
+        : TypeRef<Impl>(Kind::Struct, 0u, name, std::forward<Args>(args)...) {};
+
+public:
+    StructRef(const std::string& name = "")
+        : TypeRef<Impl>(Kind::Struct, 0u, name) {};
+
+    const std::string& name() const { return this->impl->name; }
+
+    void add_member(const std::string& name, const Type& type)
+    {
+        this->impl->members.emplace(name, Member(type, 0u)); //Modify 0 value with the offset
+        this->impl->memory_size += type.memory_size();
+    }
+
+    const Type& operator [](const std::string& name) const
+    {
+        return this->impl->members.at(name).type;
+    }
+};
+
+struct StructImpl : TypeImpl
+{
+    StructImpl(Kind kind, size_t memory_size, const std::string& name)
+        : TypeImpl(kind, memory_size)
+        , name(name) {}
+
+    std::string name;
     std::map<std::string, Member> members;
 };
 
-template<typename Impl>
-class StructTypeRef : public TypeRef<Impl>
-{
-public:
-    StructTypeRef() : TypeRef<Impl>() {};
+template class StructRef<StructImpl>;
+typedef StructRef<StructImpl> Struct;
 
-    void add_member(const std::string& name, Type type);
-    Type operator [](const std::string& name);
-};
 
-typedef StructTypeRef<StructTypeImpl> StructType;
-
-//===========================  =============================
 }
+
+#include <iostream>
 
 int main()
 {
-    return 0;
-}
+    rt::Type p_uint32 = rt::Primitive<uint32_t>();
+    rt::Array a_uint32 = rt::Array(p_uint32, 4);
+    rt::Sequence s_s_uint32 = rt::Sequence(a_uint32, 8);
+    rt::Struct t_ps = rt::Struct("t_ps");
+    t_ps.add_member("p_uint32", p_uint32);
+    t_ps.add_member("a_uint32", a_uint32);
+    rt::Struct t_pt = rt::Struct("t_pt");
+    t_pt.add_member("p_uint32", p_uint32);
+    t_pt.add_member("t_ps", t_ps);
 
-
-/*
-class StructType : public Type
-{
-public:
-};
-
-}
-
-int main()
-{
-    TypeRef type1 = std::make_shared<rt::StructType>();
-    type1->add_member("m_int8", rt::Kind::Int8);
-    type1->add_member("m_int32", rt::Kind::Int32);
-    type1->add_member("m_float", rt::Kind::Float);
+    std::cout << p_uint32.memory_size() << std::endl;
+    std::cout << a_uint32.memory_size() << std::endl;
+    std::cout << s_s_uint32.memory_size() << std::endl;
+    std::cout << t_ps.memory_size() << std::endl;
+    std::cout << t_pt.memory_size() << std::endl;
 
     return 0;
 }
-*/
+
