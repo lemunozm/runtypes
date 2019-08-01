@@ -20,26 +20,27 @@ public:
 
     CType(const T& t)
         : Type(Kind::CType, typeid(T).name(), sizeof(T))
-        , instance_(t)
         , hash_code_(typeid(T).hash_code())
+        , base_instance_(t)
     {};
 
     CType(T&& t)
         : Type(Kind::CType, typeid(T).name(), sizeof(T))
-        , instance_(t)
         , hash_code_(typeid(T).hash_code())
+        , base_instance_(t)
     {};
 
     size_t hash_code() const { return hash_code_; }
 
     virtual void build_object_at(uint8_t* location) const
     {
-        std::memcpy(location, &instance_, memory_size());
+        T instance = base_instance_;
+        std::memcpy(location, &instance, memory_size());
     }
 
 private:
-    T instance_;
-    size_t hash_code_;
+    size_t hash_code_; //Must be before instance
+    T base_instance_;
 };
 
 } //namespace rt

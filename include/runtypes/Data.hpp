@@ -90,7 +90,7 @@ public:
     void set(T&& t)
     {
         validate_data_type<T>("set");
-        std::memcpy(memory_, &t, type_.memory_size());
+        std::memcpy(memory_, &t, sizeof(T));
     }
 
 protected:

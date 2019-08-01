@@ -29,7 +29,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_compile_features(${PROJECT_NAME}
     INTERFACE
-        cxx_range_for #"equivalent" to under 3.8 cxx_std_11
+        cxx_range_for #"equivalent" to cxx_std_11
     )
 
 #################################### EXAMPLES #######################################

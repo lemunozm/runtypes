@@ -60,9 +60,9 @@ public:
 
     virtual void build_object_at(uint8_t* location) const
     {
-        for(auto&& member_it: members_)
+        for(auto&& it: members_)
         {
-            member_it.second.type().build_object_at(location + member_it.second.offset());
+            it.second.type().build_object_at(location + it.second.offset());
         }
     }
 
