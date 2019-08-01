@@ -1,5 +1,4 @@
-#include <runtypes/Type.hpp>
-#include <runtypes/Data.hpp>
+#include <runtypes/runtypes.hpp>
 
 #include <iostream>
 
