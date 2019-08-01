@@ -7,10 +7,10 @@
 namespace rt
 {
 
-class NoMemberException : public std::runtime_error
+class DataAccessException : public std::runtime_error
 {
 public:
-    NoMemberException(const std::string& message)
+    DataAccessException(const std::string& message)
         : std::runtime_error(message)
     {}
 };

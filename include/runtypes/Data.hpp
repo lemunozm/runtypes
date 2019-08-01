@@ -25,6 +25,7 @@ public:
     template <typename T>
     const T& get() const
     {
+        validate_data_type<T>("get");
         return *reinterpret_cast<T*>(memory_);
     }
 
@@ -36,19 +37,36 @@ protected:
 
     const Member* get_member(const std::string& name) const
     {
-        if(type_.kind() == Kind::Struct)
+        if(type_.kind() != Kind::Struct)
         {
-            const Member* member = static_cast<const Struct&>(type_).member(name);
-            if(!member)
-            {
-                throw NoMemberException("Type '" + type_.name() + "' has no member '" + name + "'");
-            }
-            return member;
+            throw DataAccessException("Type '" + type_.name() + "' has no members.");
         }
-        else
+
+        const Member* member = static_cast<const Struct&>(type_).member(name);
+        if(!member)
         {
-            throw NoMemberException("Type '" + type_.name() + "' has no members");
+            throw DataAccessException("Type '" + type_.name() + "' has no member '" + name + "'.");
         }
+
+        return member;
+    }
+
+    template <typename T>
+    bool validate_data_type(const std::string& method) const
+    {
+        if(type_.kind() != Kind::CType)
+        {
+            throw DataAccessException("'" + method + "' can only be called from members with primitive types. "
+                   "It was called from type '" + type_.name() + "'.");
+        }
+
+        const CType<T>& ctype = static_cast<const CType<T>&>(type_);
+        if(typeid(T).hash_code() != ctype.hash_code())
+        {
+            throw DataAccessException("Type '" + type_.name() + "' differs from '" + typeid(T).name() + "'.");
+        }
+
+        return true;
     }
 
     const Type& type_;
@@ -71,6 +89,7 @@ public:
     template <typename T>
     void set(T&& t)
     {
+        validate_data_type<T>("set");
         std::memcpy(memory_, &t, type_.memory_size());
     }
 
