@@ -7,6 +7,11 @@ int main()
     inner.add_member("vec", rt::CType<std::vector<int>({1, 4, 3, 5}));
     inner.add_member("map", rt::CType<std::map<std::string, uint32_t>>({{"a": 3}, {"b": 8}, {"c": 8}));
 
+    inner.add_member<int>("uint", 5);
+    inner.add_member<std::string>("str", "hello");
+    inner.add_member<std::vector<int>("vec", {1, 4, 3, 5});
+    inner.add_member<std::map<std::string, uint32_t>>("map", {{"a": 3}, {"b": 8}, {"c": 8}});
+
     rt::Struct my_type;
     my_type.add_member("inner", inner);
     my_type.add_member("float", rt::CType<float>(3.0f));
@@ -26,4 +31,11 @@ int main()
         std::cout << member.type() << std::endl;
         //std::cout << member.value<TYPE_HERE>() << std::endl;
     }
+
+    my_type.add_member<int>("uint", 5);
+    my_type.add_member<std::map<std::string, uint32_t>>("map", {{"a": 3}, {"b": 8}, {"c": 7}});
+
+    my_type.add_member("int", rt::TypeDef<int>(), 5);
+    my_type.add_member("map", rt::TypeDef<std::map<std::string, uint32_t>>, {{"a": 3}, {"b": 8}, {"c": 7}});
+
 }

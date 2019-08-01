@@ -2,116 +2,72 @@
 #define RT__TYPE_HPP_
 
 #include <cinttypes>
-#include <memory>
 #include <cstring>
+#include <memory>
+#include <string>
 #include <map>
-#include <iostream> //Check
-
+#include <vector>
 
 namespace rt
 {
 
-//=========================== COMMON =============================
 enum class Kind
 {
-    None, CType, Struct,
+    Undefined, CType, Struct,
 };
 
 //=========================== TYPE =============================
-struct TypeImpl;
-template<typename Impl>
-class TypeRef
+class Type
 {
 public:
-    Kind kind() const { return impl_->kind_; }
-    const std::string& name() const { return impl_->name_; };
-    size_t memory_size() const { return impl_->memory_size_; }
+    Kind kind() const { return kind_; };
+    const std::string& name() const { return name_; };
+    size_t memory_size() const { return memory_size_; }
 
-
-    operator TypeRef<TypeImpl>&()
-    {
-        return reinterpret_cast<TypeRef<TypeImpl>&>(*this);
-    }
-
-    operator const TypeRef<TypeImpl>&() const
-    {
-        return reinterpret_cast<const TypeRef<TypeImpl>&>(*this);
-    }
-
-    virtual void build_object_at(uint8_t* location) const
-    {
-        std::cout << "build abstract" << std::endl;
-        this->build_object_at(location);
-        /*
-        if(kind() == Kind::CType)
-        {
-            static_cast<CTypeRef<CTypeImpl>*>(this)->build_object_at(location);
-        }
-        */
-    };
+    virtual void build_object_at(uint8_t* location) const = 0;
 
 protected:
-    template<typename... Args>
-    TypeRef(Kind kind, const std::string& name, size_t memory_size, Args&&... args)
-        : impl_(std::make_shared<Impl>(kind, name, memory_size, std::forward<Args>(args)...)) {}
-
-    std::shared_ptr<Impl> impl_;
+    Type(Kind kind, const std::string& name, size_t memory_size)
+        : kind_(kind)
+        , name_(name)
+        , memory_size_(memory_size)
+    {}
 
 private:
-    void* operator new(size_t);
-};
-
-struct TypeImpl
-{
-    TypeImpl(Kind kind, const std::string& name, size_t memory_size)
-        : kind_(kind), name_(name), memory_size_(memory_size) {}
-
     Kind kind_;
     std::string name_;
+
+protected:
     size_t memory_size_;
 };
 
-template class TypeRef<TypeImpl>;
-typedef TypeRef<TypeImpl> Type;
-/*
-class Type
-{
-    TypeRef<TypeImpl>& operator->() { return core; }
-    const TypeRef<TypeImpl>& operator->() const { return core; }
-
-private:
-    TypeRef<TypeImpl> core;
-}
-*/
-
 //=========================== CType =============================
-template<typename T, template<typename> class Impl>
-class CTypeRef : public TypeRef<Impl<T>>
+template <typename T>
+class CType : public Type
 {
 public:
-    CTypeRef()
-        : TypeRef<Impl<T>>(Kind::CType, typeid(T).name(), sizeof(T), T())
+    CType()
+        : Type(Kind::CType, typeid(T).name(), sizeof(T))
+    {};
+
+    CType(const T& t)
+        : Type(Kind::CType, typeid(T).name(), sizeof(T))
+        , instance_(t)
+    {};
+
+    CType(T&& t)
+        : Type(Kind::CType, typeid(T).name(), sizeof(T))
+        , instance_(t)
     {};
 
     virtual void build_object_at(uint8_t* location) const
     {
-        std::cout << "build ctype" << std::endl;
-        std::memcpy(location, &this->impl_->ctype_, this->memory_size());
+        std::memcpy(location, &instance_, memory_size());
     }
+
+private:
+    T instance_;
 };
-
-template<typename T>
-struct CTypeImpl : TypeImpl
-{
-    CTypeImpl(Kind kind, const std::string& name, size_t memory_size, T ctype)
-        : TypeImpl(kind, name, memory_size)
-        , ctype_(ctype) {}
-
-    T ctype_;
-};
-
-template<typename T>
-class CType : public CTypeRef<T, CTypeImpl> { };
 
 //=========================== MEMBER =============================
 class Member
@@ -124,55 +80,54 @@ public:
     size_t offset() const { return offset_; }
 
 private:
-    Type type_;
+    const Type& type_;
     size_t offset_;
 };
 
 //=========================== STRUCT =============================
-template<typename Impl>
-class StructRef : public TypeRef<Impl>
+class Struct : public Type
 {
 public:
-    StructRef(const std::string& name = "")
-        : TypeRef<Impl>(Kind::Struct, name, 0u) {};
+    Struct(const std::string& name = "")
+        : Type(Kind::Struct, name, 0u) {};
 
-    void add_member(const std::string& name, const Type& type)
+    void add_member(const std::string& name, const Struct& type)
     {
-        this->impl_->members_.emplace(name, Member(type, this->impl_->memory_size_));
-        this->impl_->memory_size_ += type.memory_size();
+        members_.emplace(name, Member(type, memory_size_));
+        memory_size_ += type.memory_size();
+    }
+
+    template<typename T>
+    void add_member(const std::string& name, T t)
+    {
+        built_members_.emplace_back(std::make_shared<CType<T>>(t));
+        members_.emplace(name, Member(*built_members_.back(), memory_size_));
+        memory_size_ += built_members_.back()->memory_size();
     }
 
     const Type& operator[](const std::string& name) const
     {
-        return this->impl_->members_.at(name).type();
+        return members_.at(name).type();
     }
 
-    const Member& member(const std::string& name) const
+    const Member* member(const std::string& name) const
     {
-        return this->impl_->members_.at(name);
+        auto it = members_.find(name);
+        return it != members_.end() ? &it->second : nullptr;
     }
 
     virtual void build_object_at(uint8_t* location) const
     {
-        std::cout << "build struct" << std::endl;
-        for(auto&& member_it: this->impl_->members_)
+        for(auto&& member_it: members_)
         {
             member_it.second.type().build_object_at(location + member_it.second.offset());
-            std::cout << member_it.first << std::endl;
         }
     }
-};
 
-struct StructImpl : TypeImpl
-{
-    StructImpl(Kind kind, const std::string& name, size_t memory_size)
-        : TypeImpl(kind, name, memory_size) {}
-
+private:
+    std::vector<std::shared_ptr<Type>> built_members_;
     std::map<std::string, Member> members_;
 };
-
-template class StructRef<StructImpl>;
-typedef StructRef<StructImpl> Struct;
 
 }
 

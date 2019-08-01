@@ -1,46 +1,109 @@
 #ifndef RT__DATA_HPP_
 #define RT__DATA_HPP_
 
+#include <runtypes/Type.hpp>
+
 #include <cinttypes>
 #include <memory>
-
-#include <runtypes/Type.hpp>
+#include <stdexcept>
 
 namespace rt
 {
 
-class Data
+class NoMemberException : public std::runtime_error
+{
+public:
+    NoMemberException(const std::string& message)
+        : std::runtime_error(message)
+    {}
+};
+
+
+class ReadableDataRef
+{
+public:
+    const Type& type() const { return type_; }
+    const uint8_t* memory() const { return memory_; }
+
+    ReadableDataRef operator[](const std::string& name) const
+    {
+        const Member* member = get_member(name);
+        return ReadableDataRef(member->type(), memory_ + member->offset());
+    }
+
+    template <typename T>
+    const T& get() const
+    {
+        return *reinterpret_cast<T*>(memory_);
+    }
+
+protected:
+    ReadableDataRef(const Type& type, uint8_t* memory)
+        : type_(type)
+        , memory_(memory)
+    {}
+
+    const Member* get_member(const std::string& name) const
+    {
+        if(type_.kind() == Kind::Struct)
+        {
+            const Member* member = static_cast<const Struct&>(type_).member(name);
+            if(!member)
+            {
+                throw NoMemberException("Type '" + type_.name() + "' has no member '" + name + "'");
+            }
+            return member;
+        }
+        else
+        {
+            throw NoMemberException("Type '" + type_.name() + "' has no members");
+        }
+    }
+
+    const Type& type_;
+    uint8_t* memory_;
+};
+
+
+class WritableDataRef : public ReadableDataRef
+{
+public:
+    uint8_t* memory() { return memory_; }
+
+    WritableDataRef operator[](const std::string& name)
+    {
+        const Member* member = get_member(name);
+        return WritableDataRef(member->type(), memory_ + member->offset());
+    }
+
+    template <typename T>
+    void set(T&& t)
+    {
+        std::memcpy(memory_, &t, type_.memory_size());
+    }
+
+protected:
+    WritableDataRef(const Type& type, uint8_t* memory)
+        : ReadableDataRef(type, memory)
+    {}
+};
+
+
+class Data : public WritableDataRef
 {
 public:
     Data(const Type& type)
-        : type_(type)
-        , memory_(new uint8_t[type_.memory_size()], std::default_delete<uint8_t[]>())
+        : WritableDataRef(type, new uint8_t[type.memory_size()])
     {
-        type.build_object_at(memory_.get());
+        type.build_object_at(memory_);
     }
 
-    Data(const Type& type, uint8_t* memory)
-        : type_(type)
-        , memory_(memory, [](uint8_t*){})
-    {}
-
-    const Type& type() const { return type_; }
-
-    uint8_t* memory() { return memory_.get(); }
-    const uint8_t* memory() const { return memory_.get(); }
-
-    /*
-    template<typename T>
-    T operator[](const std::string& type)
+    virtual ~Data()
     {
-        //TODO
+        delete[] memory_;
     }
-    */
-
-private:
-    Type type_;
-    std::shared_ptr<uint8_t> memory_;
 };
+
 
 }
 

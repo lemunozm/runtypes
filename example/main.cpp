@@ -4,41 +4,37 @@
 #include <string>
 #include <vector>
 #include <map>
-
 #include <iostream>
 
 int main()
 {
-    rt::Type c_int = rt::CType<int>();
-    rt::Type c_uint = rt::CType<unsigned int>();
-    rt::Type c_uint8 = rt::CType<uint8_t>();
-    rt::Type c_uint32 = rt::CType<uint32_t>();
-    rt::Type c_str = rt::CType<std::string>();
-    rt::Type c_v_uint32 = rt::CType<std::vector<uint32_t>>();
-    rt::Type c_m_str_uint32 = rt::CType<std::map<std::string, uint32_t>>();
+    // API
+    rt::Struct t1("my_type_1");
+    t1.add_member("int", 5);
+    t1.add_member("vec", std::vector<int>{4, 5, 3});
+    t1.add_member("map", std::map<std::string, int>{{"a", 3}, {"b", 8}, {"c", 7}});
 
-    rt::Struct t_bb = rt::Struct("t_bb");
-    t_bb.add_member("c_uint", c_uint);
-    t_bb.add_member("c_uint8", c_uint8);
-    t_bb.add_member("c_uint32", c_uint32);
-    t_bb.add_member("c_str", c_str);
-    t_bb.add_member("c_v_uint32", c_v_uint32);
-    t_bb.add_member("c_m_str_uint32", c_m_str_uint32);
+    rt::Struct t2("my_type_2");
+    t2.add_member("float", 3.2f);
+    t2.add_member("inner", t1);
 
-    std::cout << c_int.memory_size() << ": " << c_int.name() << std::endl;
-    std::cout << c_uint.memory_size() << ": " << c_uint.name() << std::endl;
-    std::cout << c_uint8.memory_size() << ": " << c_uint8.name() << std::endl;
-    std::cout << c_uint32.memory_size() << ": " << c_uint32.name() << std::endl;
-    std::cout << c_str.memory_size() << ": " << c_str.name() << std::endl;
-    std::cout << c_v_uint32.memory_size() << ": " << c_v_uint32.name() << std::endl;
-    std::cout << c_m_str_uint32.memory_size() << ": " << c_m_str_uint32.name() << std::endl;
-    std::cout << t_bb.memory_size() << ": " << t_bb.name() << std::endl;
+    rt::Data d1(t1);
+    rt::Data d2(t2);
 
-    rt::Data d1(c_v_uint32);
-    rt::Data d2(t_bb);
+    // CHECKS
+    std::cout << d1["int"].type().name() << std::endl;
+    std::cout << d1["vec"].type().name() << std::endl;
+    std::cout << d1["map"].type().name() << std::endl;
+    std::cout << d2["float"].type().name() << std::endl;
+    std::cout << d2["inner"].type().name() << std::endl;
+    std::cout << d2["inner"]["int"].type().name() << std::endl;
+    std::cout << d2["inner"]["vec"].type().name() << std::endl;
+    std::cout << d2["inner"]["map"].type().name() << std::endl;
 
-    //t_bb_d["c_str"].as<std::string>() = "Example";
-    //std::cout << t_bb_d["c_str"].as<std::string>() << std::endl;*/
+    d1["int"].set(8);
+    d2["inner"]["vec"].set(std::vector<int>{2, 4, 6, 8, 10});
+    std::cout << d1["int"].get<int>() << std::endl;
+    std::cout << d2["inner"]["vec"].get<std::vector<int>>()[2] << std::endl;
 
     return 0;
 }
