@@ -1,7 +1,9 @@
 #ifndef RT__STRUCT_HPP_
 #define RT__STRUCT_HPP_
 
+#include <runtypes/Exception.hpp>
 #include <runtypes/CType.hpp>
+
 #include <memory>
 #include <map>
 #include <vector>
@@ -35,6 +37,7 @@ public:
 
     void add_member(const std::string& name, const Struct& type)
     {
+        validate_member_addition(name);
         members_.emplace(name, Member(type, memory_size_));
         memory_size_ += type.memory_size();
     }
@@ -42,6 +45,7 @@ public:
     template<typename T>
     void add_member(const std::string& name, T t)
     {
+        validate_member_addition(name);
         built_members_.emplace_back(std::make_shared<CType<T>>(t));
         members_.emplace(name, Member(*built_members_.back(), memory_size_));
         memory_size_ += built_members_.back()->memory_size();
@@ -49,6 +53,11 @@ public:
 
     const Type& operator[](const std::string& name) const
     {
+        if(members_.find(name) == members_.end())
+        {
+            throw MemberAccessException("Struct type '" + this->name() + "' has no member '" + name + "'.");
+        }
+
         return members_.at(name).type();
     }
 
@@ -67,6 +76,16 @@ public:
     }
 
 private:
+    bool validate_member_addition(const std::string& name) const
+    {
+        if(members_.find(name) != members_.end())
+        {
+            throw MemberAddException("Struct type '" + this->name() + "' has already a member called '" + name + "'.");
+        }
+
+        return true;
+    }
+
     std::vector<std::shared_ptr<Type>> built_members_;
     std::map<std::string, Member> members_;
 };

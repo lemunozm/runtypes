@@ -39,13 +39,13 @@ protected:
     {
         if(type_.kind() != Kind::Struct)
         {
-            throw DataAccessException("Type '" + type_.name() + "' has no members.");
+            throw MemberAccessException("Type '" + type_.name() + "' has no members.");
         }
 
         const Member* member = static_cast<const Struct&>(type_).member(name);
         if(!member)
         {
-            throw DataAccessException("Type '" + type_.name() + "' has no member '" + name + "'.");
+            throw MemberAccessException("Type '" + type_.name() + "' has no member '" + name + "'.");
         }
 
         return member;
