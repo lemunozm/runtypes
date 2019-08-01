@@ -1,24 +1,15 @@
 #ifndef RT__DATA_HPP_
 #define RT__DATA_HPP_
 
-#include <runtypes/Type.hpp>
+#include <runtypes/Struct.hpp>
+#include <runtypes/Exception.hpp>
 
-#include <cinttypes>
 #include <memory>
-#include <stdexcept>
 
 namespace rt
 {
 
-class NoMemberException : public std::runtime_error
-{
-public:
-    NoMemberException(const std::string& message)
-        : std::runtime_error(message)
-    {}
-};
-
-
+//=========================== ReadableDataRef =============================
 class ReadableDataRef
 {
 public:
@@ -65,6 +56,7 @@ protected:
 };
 
 
+//=========================== WritableDataRef =============================
 class WritableDataRef : public ReadableDataRef
 {
 public:
@@ -89,6 +81,7 @@ protected:
 };
 
 
+//=========================== Data =============================
 class Data : public WritableDataRef
 {
 public:
@@ -105,6 +98,6 @@ public:
 };
 
 
-}
+} //namespace rt
 
 #endif //RT__DATA_HPP_

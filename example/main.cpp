@@ -1,9 +1,6 @@
 #include <runtypes/Type.hpp>
 #include <runtypes/Data.hpp>
 
-#include <string>
-#include <vector>
-#include <map>
 #include <iostream>
 
 int main()
