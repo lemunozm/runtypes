@@ -17,6 +17,8 @@ enum class Kind
 class Type
 {
 public:
+    virtual ~Type() = default;
+
     Kind kind() const { return kind_; };
     const std::string& name() const { return name_; };
     size_t memory_size() const { return memory_size_; }

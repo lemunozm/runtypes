@@ -13,6 +13,8 @@ namespace rt
 class ReadableDataRef
 {
 public:
+    virtual ~ReadableDataRef() = default;
+
     const Type& type() const { return type_; }
     const uint8_t* memory() const { return memory_; }
 
@@ -78,6 +80,8 @@ protected:
 class WritableDataRef : public ReadableDataRef
 {
 public:
+    virtual ~WritableDataRef() = default;
+
     uint8_t* memory() { return memory_; }
 
     WritableDataRef operator[](const std::string& name)

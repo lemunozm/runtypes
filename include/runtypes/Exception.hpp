@@ -7,7 +7,7 @@
 namespace rt
 {
 
-#define DEFINE_STRING_BASED_EXCEPTION(TYPE, PARENT) \
+#define RT_DEFINE_STRING_BASED_EXCEPTION(TYPE, PARENT) \
     class TYPE##Exception : public PARENT \
     { \
     public: \
@@ -16,15 +16,15 @@ namespace rt
         {} \
     };
 
-#define DEFINE_RUNTYPE_EXCEPTION(TYPE) \
-    DEFINE_STRING_BASED_EXCEPTION(TYPE, RuntypeException)
+#define RT_DEFINE_RUNTYPE_EXCEPTION(TYPE) \
+    RT_DEFINE_STRING_BASED_EXCEPTION(TYPE, RuntypeException)
 
 
-DEFINE_STRING_BASED_EXCEPTION(Runtype, std::runtime_error)
+RT_DEFINE_STRING_BASED_EXCEPTION(Runtype, std::runtime_error)
 
-DEFINE_RUNTYPE_EXCEPTION(DataAccess)
-DEFINE_RUNTYPE_EXCEPTION(MemberAccess)
-DEFINE_RUNTYPE_EXCEPTION(MemberAdd)
+RT_DEFINE_RUNTYPE_EXCEPTION(DataAccess)
+RT_DEFINE_RUNTYPE_EXCEPTION(MemberAccess)
+RT_DEFINE_RUNTYPE_EXCEPTION(MemberAdd)
 
 } //namespace rt
 
