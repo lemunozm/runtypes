@@ -8,12 +8,12 @@
 template <typename T>
 void test_add_c_member(rt::Struct& s, const std::string& name, T&& value)
 {
-    SECTION("member: " + name)
+    size_t struct_memory_size = s.memory_size();
+
+    s.add_member(name, value);
+
+    THEN("added '" + name + "' member")
     {
-        size_t struct_memory_size = s.memory_size();
-
-        s.add_member(name, value);
-
         REQUIRE(s[name].kind() == rt::Kind::CType);
         REQUIRE(s[name].name() == typeid(T).name());
         REQUIRE(s[name].memory_size() == sizeof(T));
@@ -23,13 +23,13 @@ void test_add_c_member(rt::Struct& s, const std::string& name, T&& value)
     }
 }
 
-TEST_CASE("Unitary tests", "[runtypes]")
+SCENARIO("type structure definition", "[runtypes]")
 {
-    SECTION("Initializing struct")
+    GIVEN("simple struct")
     {
         rt::Struct basic("my_type_1");
 
-        SECTION("initializing c members")
+        WHEN("initializing c members")
         {
             test_add_c_member(basic, "bool", true);
             test_add_c_member(basic, "char", 'A');
@@ -55,11 +55,14 @@ TEST_CASE("Unitary tests", "[runtypes]")
             test_add_c_member(basic, "uint64_t", (uint64_t)8);
 
             int a;
-            test_add_c_member(basic, "int*", &a);
+            test_add_c_member(basic, "int*", (int*)&a);
+            test_add_c_member(basic, "const int*", (const int*)&a);
 
-            test_add_c_member(basic, "string", "hello");
+            test_add_c_member(basic, "string", std::string{"hello"});
+            test_add_c_member(basic, "long string", std::string{"hello, I am the longest string ever :D"});
             test_add_c_member(basic, "array", std::array<int, 4>{1, 2, 4, 8});
             test_add_c_member(basic, "vector", std::vector<int>{1, 2, 4, 8});
+            test_add_c_member(basic, "map", std::map<std::string, int>{{"a", 3}, {"b", 8}, {"c", 7}});
         }
     }
 }
