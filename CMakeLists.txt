@@ -37,28 +37,29 @@ target_compile_features(${PROJECT_NAME}
 #####################################################################################
 #                                    Examples
 #####################################################################################
-if(RUNTYPES_BUILD_EXAMPLES)
+macro(compile_example EXAMPLE_NAME EXAMPLE_SOURCE)
+    add_executable(${EXAMPLE_NAME} ${EXAMPLE_SOURCE})
 
-    set(EXAMPLE_BASIC ${PROJECT_NAME}_example_basic)
-
-    add_executable(${EXAMPLE_BASIC} example/basic.cpp)
-
-    target_link_libraries(${EXAMPLE_BASIC}
+    target_link_libraries(${EXAMPLE_NAME}
         PRIVATE
             ${PROJECT_NAME}
         )
 
-    target_compile_options(${PROJECT_NAME}
+    target_compile_options(${EXAMPLE_NAME}
         INTERFACE
             $<$<CXX_COMPILER_ID:GNU>:-Wall>
             $<$<CXX_COMPILER_ID:GNU>:-Wextra>
         )
 
-    set_target_properties(${EXAMPLE_BASIC}
+    set_target_properties(${EXAMPLE_NAME}
         PROPERTIES
             CXX_STANDARD 11
         )
+endmacro()
 
+if(RUNTYPES_BUILD_EXAMPLES)
+    compile_example(${PROJECT_NAME}_example_basic example/basic.cpp)
+    compile_example(${PROJECT_NAME}_example_custom_struct example/custom_struct.cpp)
 endif()
 
 #####################################################################################

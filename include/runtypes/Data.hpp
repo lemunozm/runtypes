@@ -6,6 +6,11 @@
 
 #include <memory>
 
+#define RT_NO_COPY_ASSIGNABLE_ERROR(TYPE) \
+    "Runtype error: Type '" #TYPE "' must be copy is_copy_assignable. " \
+    "This feature is not mandatory, you can use instead the '" #TYPE "'& get()' way to access the data." \
+    "See your '" #TYPE "' instantiation for more details."
+
 namespace rt
 {
 
@@ -13,6 +18,7 @@ namespace rt
 class ReadableDataRef
 {
 public:
+    ReadableDataRef(const ReadableDataRef&) = default;
     virtual ~ReadableDataRef() = default;
 
     const Type& type() const { return type_; }
@@ -29,6 +35,14 @@ public:
     {
         validate_data_type<T>("get");
         return *reinterpret_cast<T*>(memory_);
+    }
+
+    template <typename T>
+    void get(T& t) const
+    {
+        static_assert(std::is_copy_assignable<T>::value, RT_NO_COPY_ASSIGNABLE_ERROR(T));
+        validate_data_type<T>("get");
+        t = *reinterpret_cast<T*>(memory_);
     }
 
 protected:
@@ -80,6 +94,7 @@ protected:
 class WritableDataRef : public ReadableDataRef
 {
 public:
+    WritableDataRef(const WritableDataRef&) = default;
     virtual ~WritableDataRef() = default;
 
     uint8_t* memory() { return memory_; }
@@ -91,10 +106,11 @@ public:
     }
 
     template <typename T>
-    void set(T&& t)
+    void set(const T& t)
     {
         validate_data_type<T>("set");
-        std::memcpy(memory_, &t, sizeof(T));
+        reinterpret_cast<T*>(memory_)->~T();
+        new (memory_) T(t);
     }
 
 protected:
@@ -111,11 +127,18 @@ public:
     Data(const Type& type)
         : WritableDataRef(type, new uint8_t[type.memory_size()])
     {
-        type.build_object_at(memory_);
+        type_.build_object_at(memory_);
+    }
+
+    Data(const Data& other)
+        : WritableDataRef(other.type_, new uint8_t[other.type_.memory_size()])
+    {
+        type_.copy_object(memory_, other.memory_);
     }
 
     virtual ~Data()
     {
+        type_.destroy_object_at(memory_);
         delete[] memory_;
     }
 };

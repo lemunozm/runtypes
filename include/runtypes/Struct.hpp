@@ -35,6 +35,8 @@ public:
         : Type(Kind::Struct, name, 0u)
     {};
 
+    size_t member_size() const { return members_.size(); }
+
     void add_member(const std::string& name, const Struct& type)
     {
         validate_member_addition(name);
@@ -43,10 +45,19 @@ public:
     }
 
     template<typename T>
-    void add_member(const std::string& name, T t)
+    void add_member(const std::string& name, const T& t)
     {
         validate_member_addition(name);
-        built_members_.emplace_back(std::make_shared<CType<T>>(t));
+        built_members_.emplace_back(std::unique_ptr<CType<T>>(new CType<T>(t)));
+        members_.emplace(name, Member(*built_members_.back(), memory_size_));
+        memory_size_ += built_members_.back()->memory_size();
+    }
+
+    template<typename T, typename... Args>
+    void emplace_member(const std::string& name, Args... args)
+    {
+        validate_member_addition(name);
+        built_members_.emplace_back(std::unique_ptr<CType<T>>(new CType<T>(std::forward<Args>(args)...)));
         members_.emplace(name, Member(*built_members_.back(), memory_size_));
         memory_size_ += built_members_.back()->memory_size();
     }
@@ -75,6 +86,22 @@ public:
         }
     }
 
+    virtual void destroy_object_at(uint8_t* location) const
+    {
+        for(auto&& it: members_)
+        {
+            it.second.type().destroy_object_at(location + it.second.offset());
+        }
+    }
+
+    virtual void copy_object(uint8_t* dest_location, uint8_t* src_location) const
+    {
+        for(auto&& it: members_)
+        {
+            it.second.type().copy_object(dest_location + it.second.offset(), src_location + it.second.offset());
+        }
+    }
+
 private:
     bool validate_member_addition(const std::string& name) const
     {
@@ -86,7 +113,7 @@ private:
         return true;
     }
 
-    std::vector<std::shared_ptr<Type>> built_members_;
+    std::vector<std::unique_ptr<Type>> built_members_;
     std::map<std::string, Member> members_;
 };
 
