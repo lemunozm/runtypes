@@ -2,12 +2,14 @@
 #define RT__CTYPE_HPP_
 
 #include <runtypes/Type.hpp>
+#include <runtypes/Exception.hpp>
 
 #include <typeinfo>
 #include <type_traits>
 
 #define RT_NO_COPY_CONSTRUCTIBLE_ERROR(TYPE) \
-    "Runtype error: Type '" #TYPE "' must be copy constructible. " \
+    RT_STATIC_ERROR_TAG \
+    "Type '" #TYPE "' must be copy constructible. " \
     "See your '" #TYPE "' instantiation for more details."
 
 namespace rt
@@ -17,6 +19,14 @@ template <typename T>
 class CType : public Type
 {
 public:
+    CType(const CType& other)
+        : Type(Kind::CType, typeid(T).name(), sizeof(T))
+        , hash_code_(typeid(T).hash_code())
+        , base_instance_(other.t)
+    {
+        static_assert(std::is_copy_constructible<T>::value, RT_NO_COPY_CONSTRUCTIBLE_ERROR(T));
+    };
+
     CType(const T& t)
         : Type(Kind::CType, typeid(T).name(), sizeof(T))
         , hash_code_(typeid(T).hash_code())

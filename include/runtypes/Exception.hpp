@@ -7,6 +7,8 @@
 namespace rt
 {
 
+#define RT_STATIC_ERROR_TAG "_S_T_A_T_I_C___R_U_N_T_Y_P_E___E_R_R_O_R_: "
+
 #define RT_DEFINE_STRING_BASED_EXCEPTION(TYPE, PARENT) \
     class TYPE##Exception : public PARENT \
     { \

@@ -7,7 +7,8 @@
 #include <memory>
 
 #define RT_NO_COPY_ASSIGNABLE_ERROR(TYPE) \
-    "Runtype error: Type '" #TYPE "' must be copy is_copy_assignable. " \
+    RT_STATIC_ERROR_TAG \
+    "Type '" #TYPE "' must be copy is_copy_assignable. " \
     "This feature is not mandatory, you can use instead the '" #TYPE "'& get()' way to access the data." \
     "See your '" #TYPE "' instantiation for more details."
 
