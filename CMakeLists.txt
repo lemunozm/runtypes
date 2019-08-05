@@ -65,33 +65,18 @@ endif()
 #####################################################################################
 #                                      Tests
 #####################################################################################
-if(RUNTYPES_BUILD_TESTS)
+macro(compile_test TEST_NAME TEST_SOURCE)
+    compile_example(${TEST_NAME} ${TEST_SOURCE})
 
-    set(TEST_UNITARY ${PROJECT_NAME}_test_unitary)
-
-    add_executable(${TEST_UNITARY} test/unitary.cpp)
-
-    target_link_libraries(${TEST_UNITARY}
-        PRIVATE
-            ${PROJECT_NAME}
-        )
-
-    target_include_directories(${TEST_UNITARY}
+    target_include_directories(${TEST_NAME}
         PRIVATE
             ${PROJECT_SOURCE_DIR}/test/thirdparty/catch2/include
         )
 
-    target_compile_options(${TEST_UNITARY}
-        INTERFACE
-            $<$<CXX_COMPILER_ID:GNU>:-Wall>
-            $<$<CXX_COMPILER_ID:GNU>:-Wextra>
-        )
+endmacro()
 
-    set_target_properties(${TEST_UNITARY}
-        PROPERTIES
-            CXX_STANDARD 11
-        )
-
+if(RUNTYPES_BUILD_TESTS)
+    compile_test(${PROJECT_NAME}_test_unitary test/unitary.cpp)
 endif()
 
 #####################################################################################
