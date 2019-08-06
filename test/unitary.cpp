@@ -82,7 +82,7 @@ template <typename T, typename... Args>
 void test_emplace_c_member(rt::Struct& s, const std::string& name, Args&&... args)
 {
     size_t struct_memory_size = s.memory_size();
-    s.emplace_member<T>(name, std::forward<Args>(args)...);
+    s.add_member<T>(name, std::forward<Args>(args)...);
 
     THEN("the c type member '" + name + "' is emplaced")
     {

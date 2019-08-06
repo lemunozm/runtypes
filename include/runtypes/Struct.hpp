@@ -20,7 +20,7 @@ public:
     }
 
     template<typename T, typename... Args>
-    static Member create(size_t offset, Args&&... args)
+    static Member createCType(size_t offset, Args&&... args)
     {
         return Member(offset, *new CType<T>(std::forward<Args>(args)...), true);
     }
@@ -74,26 +74,26 @@ public:
     Struct(const Struct& other) = default;
     virtual ~Struct() = default;
 
-    void ref_member(const std::string& name, const Type& type)
+    void add_member(const std::string& name, const Struct& type)
     {
         validate_member_creation(name);
         members_.emplace(name, Member::ref(memory_size_, type));
         memory_size_ += type.memory_size();
     }
 
-    template<typename T, typename... Args>
-    void add_member(const std::string& name, Args&&... args)
-    {
-        validate_member_creation(name);
-        auto insertion = members_.emplace(name, Member::create<T>(memory_size_, std::forward<Args>(args)...));
-        memory_size_ += insertion.first->second.type().memory_size();
-    }
-
     template<typename T>
     void add_member(const std::string& name, const T& t)
     {
         validate_member_creation(name);
-        auto insertion = members_.emplace(name, Member::create<T>(memory_size_, t));
+        auto insertion = members_.emplace(name, Member::createCType<T>(memory_size_, t));
+        memory_size_ += insertion.first->second.type().memory_size();
+    }
+
+    template<typename T, typename... Args>
+    void add_member(const std::string& name, Args&&... args)
+    {
+        validate_member_creation(name);
+        auto insertion = members_.emplace(name, Member::createCType<T>(memory_size_, std::forward<Args>(args)...));
         memory_size_ += insertion.first->second.type().memory_size();
     }
 

@@ -4,7 +4,7 @@
 
 int main()
 {
-    // API
+    // Type API
     rt::Struct t1("my_type_1");
     t1.add_member("int", 5);
     t1.add_member("vec", std::vector<int>{4, 5, 3});
@@ -13,8 +13,9 @@ int main()
     rt::Struct t2("my_type_2");
     t2.add_member("float", 3.2f);
     t2.add_member("string", std::string{"hello!"});
-    t2.ref_member("inner", t1);
+    t2.add_member("inner", t1);
 
+    // Data API
     rt::Data d1(t1);
     rt::Data d2(t2);
 
