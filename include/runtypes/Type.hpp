@@ -3,6 +3,7 @@
 
 #include <cinttypes>
 #include <string>
+#include <memory>
 
 namespace rt
 {
@@ -19,7 +20,7 @@ class Type
 public:
     virtual ~Type() = default;
 
-    virtual Type* clone() const = 0;
+    virtual std::unique_ptr<Type> clone() const = 0;
 
     virtual void build_object_at(uint8_t* location) const = 0;
     virtual void destroy_object_at(uint8_t* location) const = 0;

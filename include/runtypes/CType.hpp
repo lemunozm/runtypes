@@ -46,9 +46,9 @@ public:
 
     virtual ~CType() = default;
 
-    virtual Type* clone() const override
+    virtual std::unique_ptr<Type> clone() const override
     {
-        return new CType(*this);
+        return std::unique_ptr<Type>(new CType(*this));
     }
 
     virtual void build_object_at(uint8_t* location) const override

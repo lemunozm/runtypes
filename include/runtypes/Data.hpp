@@ -4,8 +4,6 @@
 #include <runtypes/Struct.hpp>
 #include <runtypes/Exception.hpp>
 
-#include <memory>
-
 #define RT_NO_COPY_ASSIGNABLE_ERROR(TYPE) \
     RT_STATIC_ERROR_TAG \
     "Type '" #TYPE "' must be copy is_copy_assignable. " \

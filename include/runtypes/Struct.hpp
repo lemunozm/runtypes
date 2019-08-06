@@ -4,7 +4,6 @@
 #include <runtypes/Exception.hpp>
 #include <runtypes/CType.hpp>
 
-#include <memory>
 #include <map>
 #include <vector>
 
@@ -28,9 +27,9 @@ public:
 
     Member(const Member& other)
         : offset_(other.offset())
-        , type_(other.managed_ ? *other.type_.clone() : other.type_)
+        , type_(other.managed_ ? *other.type_.clone().release() : other.type_)
         , managed_(other.managed_)
-    { }
+    {}
 
     Member(Member&& other)
         : offset_(std::move(other.offset_))
@@ -98,9 +97,9 @@ public:
         memory_size_ += insertion.first->second.type().memory_size();
     }
 
-    virtual Type* clone() const override
+    virtual std::unique_ptr<Type> clone() const override
     {
-        return new Struct(*this);
+        return std::unique_ptr<Struct>(new Struct(*this));
     }
 
     virtual void build_object_at(uint8_t* location) const override
