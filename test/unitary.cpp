@@ -21,7 +21,7 @@ void test_data(rt::WritableDataRef&& d, const T& value, const T& set_value)
             REQUIRE(get_value == value);
         }
 
-        THEN("data is wrote")
+        THEN("data is written")
         {
             d.set<T>(set_value);
             REQUIRE(d.get<T>() == set_value);
@@ -79,7 +79,7 @@ void test_add_c_member(rt::Struct& s, const std::string& name, const T& value)
 }
 
 template <typename T, typename... Args>
-void test_emplace_c_member(rt::Struct& s, const std::string& name, Args... args)
+void test_emplace_c_member(rt::Struct& s, const std::string& name, Args&&... args)
 {
     size_t struct_memory_size = s.memory_size();
     s.emplace_member<T>(name, std::forward<Args>(args)...);
@@ -243,25 +243,62 @@ SCENARIO("unitary test")
                         }
                     }
                 }
+            }
 
-                WHEN("data is copied and accessed")
+            WHEN("data is created and copied and accessed")
+            {
+                rt::Data d4(basic);
+                d4["int"].set(2);
+                d4["float"].set(4.2f);
+                d4["string"].set(std::string{"was modified!"});
+
+                rt::Data d5(d4); //copy here
+
+                test_data(d5["int"], 2, 9);
+                test_data(d5["float"], 4.2f, 1.3f);
+                test_data(d5["string"], std::string{"was modified!"}, std::string{"was copied!"});
+
+                THEN("sources not change")
                 {
-                    rt::Data d4(basic);
-                    d4["int"].set(2);
-                    d4["float"].set(4.2f);
-                    d4["string"].set(std::string{"was modified!"});
+                    test_data(d4["int"], 2, 1);
+                    test_data(d4["float"], 4.2f, 2.1f);
+                    test_data(d4["string"], std::string{"was modified!"}, std::string{"not was changed"});
+                }
+            }
 
-                    rt::Data d5(d4); //copy here
+            WHEN("type is copied")
+            {
+                rt::Struct copied(basic);
 
-                    test_data(d5["int"], 2, 9);
-                    test_data(d5["float"], 4.2f, 1.3f);
-                    test_data(d5["string"], std::string{"was modified!"}, std::string{"was copied!"});
+                THEN("members exists")
+                {
+                    REQUIRE(copied.member("int") != nullptr);
+                }
 
-                    THEN("sources not change")
+                WHEN("new type is modified adding a member")
+                {
+                    copied.add_member("new int", 9);
+
+                    THEN("no modifications in original struct")
                     {
-                        test_data(d4["int"], 2, 1);
-                        test_data(d4["float"], 4.2f, 2.1f);
-                        test_data(d4["string"], std::string{"was modified!"}, std::string{"not was changed"});
+                        REQUIRE(basic.member("new int") == nullptr);
+                    }
+
+                    WHEN("data from copied")
+                    {
+                        rt::Data copied_data(copied);
+
+                        WHEN("data is accessed")
+                        {
+                            test_data(copied_data["int"], 5, 2);
+                            test_data(copied_data["float"], 3.0f, 9.5f);
+                            test_data(copied_data["string"], std::string{"hello"}, std::string{"bye"});
+                        }
+
+                        WHEN("accesed to new member")
+                        {
+                            test_data(copied_data["new int"], 9, 3);
+                        }
                     }
                 }
             }

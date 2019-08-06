@@ -22,7 +22,7 @@ public:
     CType(const CType& other)
         : Type(Kind::CType, typeid(T).name(), sizeof(T))
         , hash_code_(typeid(T).hash_code())
-        , base_instance_(other.t)
+        , base_instance_(other.base_instance_)
     {
         static_assert(std::is_copy_constructible<T>::value, RT_NO_COPY_CONSTRUCTIBLE_ERROR(T));
     };
@@ -36,7 +36,7 @@ public:
     };
 
     template<typename... Args>
-    CType(Args... args)
+    CType(Args&&... args)
         : Type(Kind::CType, typeid(T).name(), sizeof(T))
         , hash_code_(typeid(T).hash_code())
         , base_instance_(std::forward<Args>(args)...)
@@ -44,23 +44,30 @@ public:
         static_assert(std::is_copy_constructible<T>::value, RT_NO_COPY_CONSTRUCTIBLE_ERROR(T));
     };
 
-    size_t hash_code() const { return hash_code_; }
-    const T& base_instance() const { return base_instance_; }
+    virtual ~CType() = default;
 
-    virtual void build_object_at(uint8_t* location) const
+    virtual Type* clone() const override
+    {
+        return new CType(*this);
+    }
+
+    virtual void build_object_at(uint8_t* location) const override
     {
         new (location) T(base_instance_);
     }
 
-    virtual void destroy_object_at(uint8_t* location) const
+    virtual void destroy_object_at(uint8_t* location) const override
     {
         reinterpret_cast<T*>(location)->~T();
     }
 
-    virtual void copy_object(uint8_t* dest_location, uint8_t* src_location) const
+    virtual void copy_object(uint8_t* dest_location, uint8_t* src_location) const override
     {
         new (dest_location) T(*reinterpret_cast<T*>(src_location));
     }
+
+    size_t hash_code() const { return hash_code_; }
+    const T& base_instance() const { return base_instance_; }
 
 private:
     size_t hash_code_; //Must be placed before instance

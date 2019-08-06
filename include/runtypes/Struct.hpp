@@ -15,16 +15,53 @@ namespace rt
 class Member
 {
 public:
-    Member(const Type& type, size_t offset)
-        : type_(type), offset_(offset)
-    {}
+    static Member ref(size_t offset, const Type& type)
+    {
+        return Member(offset, type, false);
+    }
+
+    template<typename T, typename... Args>
+    static Member create(size_t offset, Args&&... args)
+    {
+        return Member(offset, *new CType<T>(std::forward<Args>(args)...), true);
+    }
+
+    Member(const Member& other)
+        : offset_(other.offset())
+        , type_(other.managed_ ? *other.type_.clone() : other.type_)
+        , managed_(other.managed_)
+    { }
+
+    Member(Member&& other)
+        : offset_(std::move(other.offset_))
+        , type_(std::move(other.type_))
+        , managed_(std::move(other.managed_))
+    {
+        other.managed_ = false;
+    }
+
+    virtual ~Member()
+    {
+        if(managed_)
+        {
+            delete &type_;
+        }
+    }
 
     const Type& type() const { return type_; }
     size_t offset() const { return offset_; }
+    bool managed() const { return managed_; }
 
 private:
-    const Type& type_;
+    Member(size_t offset, const Type& type, bool managed)
+        : offset_(offset)
+        , type_(type)
+        , managed_(managed)
+    { }
+
     size_t offset_;
+    const Type& type_;
+    bool managed_;
 };
 
 //=========================== STRUCT =============================
@@ -35,12 +72,13 @@ public:
         : Type(Kind::Struct, name, 0u)
     {};
 
-    size_t member_size() const { return members_.size(); }
+    Struct(const Struct& other) = default;
+    virtual ~Struct() = default;
 
     void add_member(const std::string& name, const Struct& type)
     {
         validate_member_addition(name);
-        members_.emplace(name, Member(type, memory_size_));
+        members_.emplace(name, Member::ref(memory_size_, type));
         memory_size_ += type.memory_size();
     }
 
@@ -48,19 +86,49 @@ public:
     void add_member(const std::string& name, const T& t)
     {
         validate_member_addition(name);
-        built_members_.emplace_back(std::unique_ptr<CType<T>>(new CType<T>(t)));
-        members_.emplace(name, Member(*built_members_.back(), memory_size_));
-        memory_size_ += built_members_.back()->memory_size();
+        auto insertion = members_.emplace(name, Member::create<T>(memory_size_, t));
+        memory_size_ += insertion.first->second.type().memory_size();
     }
 
     template<typename T, typename... Args>
-    void emplace_member(const std::string& name, Args... args)
+    void emplace_member(const std::string& name, Args&&... args)
     {
         validate_member_addition(name);
-        built_members_.emplace_back(std::unique_ptr<CType<T>>(new CType<T>(std::forward<Args>(args)...)));
-        members_.emplace(name, Member(*built_members_.back(), memory_size_));
-        memory_size_ += built_members_.back()->memory_size();
+        auto insertion = members_.emplace(name, Member::create<T>(memory_size_, std::forward<Args>(args)...));
+        memory_size_ += insertion.first->second.type().memory_size();
     }
+
+    virtual Type* clone() const override
+    {
+        return new Struct(*this);
+    }
+
+    virtual void build_object_at(uint8_t* location) const override
+    {
+        for(auto&& it: members_)
+        {
+            it.second.type().build_object_at(location + it.second.offset());
+        }
+    }
+
+    virtual void destroy_object_at(uint8_t* location) const override
+    {
+        for(auto&& it: members_)
+        {
+            it.second.type().destroy_object_at(location + it.second.offset());
+        }
+    }
+
+    virtual void copy_object(uint8_t* dest_location, uint8_t* src_location) const override
+    {
+        for(auto&& it: members_)
+        {
+            it.second.type().copy_object(dest_location + it.second.offset(), src_location + it.second.offset());
+        }
+    }
+
+    size_t member_size() const { return members_.size(); }
+
 
     const Type& operator[](const std::string& name) const
     {
@@ -78,30 +146,6 @@ public:
         return it != members_.end() ? &it->second : nullptr;
     }
 
-    virtual void build_object_at(uint8_t* location) const
-    {
-        for(auto&& it: members_)
-        {
-            it.second.type().build_object_at(location + it.second.offset());
-        }
-    }
-
-    virtual void destroy_object_at(uint8_t* location) const
-    {
-        for(auto&& it: members_)
-        {
-            it.second.type().destroy_object_at(location + it.second.offset());
-        }
-    }
-
-    virtual void copy_object(uint8_t* dest_location, uint8_t* src_location) const
-    {
-        for(auto&& it: members_)
-        {
-            it.second.type().copy_object(dest_location + it.second.offset(), src_location + it.second.offset());
-        }
-    }
-
 private:
     bool validate_member_addition(const std::string& name) const
     {
@@ -113,7 +157,6 @@ private:
         return true;
     }
 
-    std::vector<std::unique_ptr<Type>> built_members_;
     std::map<std::string, Member> members_;
 };
 
