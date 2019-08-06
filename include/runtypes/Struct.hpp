@@ -19,8 +19,13 @@ public:
         return Member(offset, type, false);
     }
 
+    static Member copy(size_t offset, const Type& type)
+    {
+        return Member(offset, type, false);
+    }
+
     template<typename T, typename... Args>
-    static Member createCType(size_t offset, Args&&... args)
+    static Member create_ctype(size_t offset, Args&&... args)
     {
         return Member(offset, *new CType<T>(std::forward<Args>(args)...), true);
     }
@@ -56,7 +61,7 @@ private:
         : offset_(offset)
         , type_(type)
         , managed_(managed)
-    { }
+    {}
 
     size_t offset_;
     const Type& type_;
@@ -64,12 +69,34 @@ private:
 };
 
 //=========================== STRUCT =============================
+struct Builder
+{
+    Builder(const std::string& name, const Type& type)
+        : name(name)
+        , type(type)
+    {}
+
+    std::string name;
+    const Type& type;
+};
+
 class Struct : public Type
 {
 public:
     Struct(const std::string& name = "")
         : Type(Kind::Struct, name, 0u)
     {};
+
+    Struct(const std::string& name, std::initializer_list<Builder> member_list)
+        : Type(Kind::Struct, name, 0u)
+    {
+        for(auto&& builder: member_list)
+        {
+            validate_member_creation(name);
+            members_.emplace(builder.name, Member::copy(memory_size_, builder.type));
+            memory_size_ += builder.type.memory_size();
+        }
+    };
 
     Struct(const Struct& other) = default;
     virtual ~Struct() = default;
@@ -85,7 +112,7 @@ public:
     void add_member(const std::string& name, const T& t)
     {
         validate_member_creation(name);
-        auto insertion = members_.emplace(name, Member::createCType<T>(memory_size_, t));
+        auto insertion = members_.emplace(name, Member::create_ctype<T>(memory_size_, t));
         memory_size_ += insertion.first->second.type().memory_size();
     }
 
@@ -93,7 +120,7 @@ public:
     void add_member(const std::string& name, Args&&... args)
     {
         validate_member_creation(name);
-        auto insertion = members_.emplace(name, Member::createCType<T>(memory_size_, std::forward<Args>(args)...));
+        auto insertion = members_.emplace(name, Member::create_ctype<T>(memory_size_, std::forward<Args>(args)...));
         memory_size_ += insertion.first->second.type().memory_size();
     }
 
