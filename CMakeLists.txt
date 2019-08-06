@@ -59,7 +59,7 @@ endmacro()
 
 if(RUNTYPES_BUILD_EXAMPLES)
     compile_example(${PROJECT_NAME}_example_basic example/basic.cpp)
-    compile_example(${PROJECT_NAME}_example_add_vs_emplace example/add_vs_emplace.cpp)
+    compile_example(${PROJECT_NAME}_example_custom_struct example/custom_struct.cpp)
 endif()
 
 #####################################################################################

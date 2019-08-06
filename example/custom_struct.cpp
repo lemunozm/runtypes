@@ -11,21 +11,19 @@ int indent;
 
 struct A
 {
-    A(float value) : value_(value), c_(c)
+    A(float value) : value_(value), c_(++c)
     {
-        c++;
-        std::cout << INDENT_STR << "+ Build: " << c_ << ", address: " << reinterpret_cast<uintptr_t>(this) << std::endl;
+        std::cout << INDENT_STR << "+ Build: " << c_ << "º, address: " << reinterpret_cast<uintptr_t>(this) << std::endl;
     };
 
-    A(const A& other) : value_(other.value_),  c_(c)
+    A(const A& other) : value_(other.value_),  c_(++c)
     {
-        c++;
-        std::cout << INDENT_STR << "+ Copy: " << c_ << ", address: " << reinterpret_cast<uintptr_t>(this) << std::endl;
+        std::cout << INDENT_STR << "+ Copy: " << c_ << "º, address: " << reinterpret_cast<uintptr_t>(this) << std::endl;
     };
 
     ~A()
     {
-        std::cout << INDENT_STR << "- Destroy: " << c_ << ", address: " << reinterpret_cast<uintptr_t>(this) << std::endl;
+        std::cout << INDENT_STR << "- Destroy: " << c_ << "º, address: " << reinterpret_cast<uintptr_t>(this) << std::endl;
     };
 
     static int c;
@@ -37,12 +35,12 @@ int A::c = 0;
 
 int main()
 {
-    std::cout << "###### add method ######" << std::endl;
+    std::cout << "###### create and copy method ######" << std::endl;
     {
         INDENT(0);
         LOG("Struct definition");
         rt::Struct t1("my_type_1");
-        t1.add_member("a", A(8.7f));
+        t1.add_member("a", A(8.7f)); //copy way
         {
             INDENT(4);
             LOG("Data instantiation");
@@ -70,7 +68,7 @@ int main()
         INDENT(0);
         LOG("Struct definition");
         rt::Struct t1("my_type_1");
-        t1.emplace_member<A>("a", 8.6f);
+        t1.add_member<A>("a", 8.6f); //emplace way
         {
             INDENT(4);
             LOG("Data instantiation");

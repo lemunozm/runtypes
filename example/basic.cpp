@@ -13,7 +13,7 @@ int main()
     rt::Struct t2("my_type_2");
     t2.add_member("float", 3.2f);
     t2.add_member("string", std::string{"hello!"});
-    t2.add_member("inner", t1);
+    t2.ref_member("inner", t1);
 
     rt::Data d1(t1);
     rt::Data d2(t2);

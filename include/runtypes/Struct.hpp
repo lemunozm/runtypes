@@ -75,26 +75,26 @@ public:
     Struct(const Struct& other) = default;
     virtual ~Struct() = default;
 
-    void add_member(const std::string& name, const Struct& type)
+    void ref_member(const std::string& name, const Type& type)
     {
-        validate_member_addition(name);
+        validate_member_creation(name);
         members_.emplace(name, Member::ref(memory_size_, type));
         memory_size_ += type.memory_size();
+    }
+
+    template<typename T, typename... Args>
+    void add_member(const std::string& name, Args&&... args)
+    {
+        validate_member_creation(name);
+        auto insertion = members_.emplace(name, Member::create<T>(memory_size_, std::forward<Args>(args)...));
+        memory_size_ += insertion.first->second.type().memory_size();
     }
 
     template<typename T>
     void add_member(const std::string& name, const T& t)
     {
-        validate_member_addition(name);
+        validate_member_creation(name);
         auto insertion = members_.emplace(name, Member::create<T>(memory_size_, t));
-        memory_size_ += insertion.first->second.type().memory_size();
-    }
-
-    template<typename T, typename... Args>
-    void emplace_member(const std::string& name, Args&&... args)
-    {
-        validate_member_addition(name);
-        auto insertion = members_.emplace(name, Member::create<T>(memory_size_, std::forward<Args>(args)...));
         memory_size_ += insertion.first->second.type().memory_size();
     }
 
@@ -147,7 +147,7 @@ public:
     }
 
 private:
-    bool validate_member_addition(const std::string& name) const
+    bool validate_member_creation(const std::string& name) const
     {
         if(members_.find(name) != members_.end())
         {
