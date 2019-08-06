@@ -20,7 +20,7 @@ public:
     }
 
     template<typename T, typename... Args>
-    static Member createCType(size_t offset, Args&&... args)
+    static Member create_ctype(size_t offset, Args&&... args)
     {
         return Member(offset, *new CType<T>(std::forward<Args>(args)...), true);
     }
@@ -85,7 +85,7 @@ public:
     void add_member(const std::string& name, const T& t)
     {
         validate_member_creation(name);
-        auto insertion = members_.emplace(name, Member::createCType<T>(memory_size_, t));
+        auto insertion = members_.emplace(name, Member::create_ctype<T>(memory_size_, t));
         memory_size_ += insertion.first->second.type().memory_size();
     }
 
@@ -93,7 +93,7 @@ public:
     void add_member(const std::string& name, Args&&... args)
     {
         validate_member_creation(name);
-        auto insertion = members_.emplace(name, Member::createCType<T>(memory_size_, std::forward<Args>(args)...));
+        auto insertion = members_.emplace(name, Member::create_ctype<T>(memory_size_, std::forward<Args>(args)...));
         memory_size_ += insertion.first->second.type().memory_size();
     }
 
