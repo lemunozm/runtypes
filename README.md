@@ -1,3 +1,6 @@
+[![release](https://img.shields.io/github/release/lemunozm/runtypes)](https://github.com/lemunozm/runtypes/releases)
+[![license](https://img.shields.io/github/license/lemunozm/runtypes)](https://www.apache.org/licenses/LICENSE-2.0.txt)
+
 # runtypes
 *runtypes* is a lightweight C++ library that allows create types in runtime.
 The library has been realized to bring the adventages of runtime with the less performance impact that runtime code comes with.
@@ -25,12 +28,12 @@ struct Outter
 you can easily create an **analogous code** that creates the same data structure in runtime using *runtypes*:
 ```c++
 rt::Struct inner("Inner");
-t1.add_member<int>("id");
-t1.add_member<std::map<int, float>("values");
+inner.add_member<int>("id");
+inner.add_member<std::map<int, float>("values");
 
 rt::Struct outter("Outter");
-t2.add_member<std::string>("name");
-t2.add_member("inner", inner);
+inner.add_member<std::string>("name");
+inner.add_member("inner", inner);
 ```
 
 Once you defined the types, you can instantiate them and access to their data:
