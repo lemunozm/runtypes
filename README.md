@@ -54,7 +54,7 @@ std::string name = my_data["name"].get<std::string>();
 * No external dependencies: *runtypes* uses only tools from `std`.
 * Easy to use and learn: Few classes, comprensive API and intuitive concepts.
 
-## Compilation
+## Build
 *runtypes* is a header only library, you can simply copy the files located in `include` folder into your project to make it works.
 
 Also, for a better management, *runtypes* comes with as CMake project.
@@ -72,7 +72,7 @@ $ make
 Also, you can install the library in your computer to access easily from any project executing `make install`.
 
 ## API usage
-Some examples can be found in [example folder](examples/).
+Some examples can be found in [example folder](examples).
 
 ### Type definition
 To define your structs, you can use the `add_member` method.
