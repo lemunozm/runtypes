@@ -44,7 +44,7 @@ rt::data my_data(outter);
 my_data["inner"]["id"].set(42);
 
 // read value
-std::string& name = my_data["name"].get<std::string>();
+const std::string& name = my_data["name"].get<std::string>();
 ```
 
 ## Why use *runtypes*?
@@ -125,13 +125,13 @@ This methods are template methods, so you need to specify the type you want to s
 
 * `get` method:
   The get method has two different usages:
-  
-  `T get()` that will return the value:
+
+  `const T& get() const` that will return the value:
   ```c++
   int i = data["outter_member"]["inner_member"].get<int>();
   ```
 
-  `void get(T& t)` that will return the value by references:
+  `void get(T& t) const` that will return the value by reference:
   ```c++
   int i;
   data["outter_member"]["inner_member"].get(i); //type can be deducted as int

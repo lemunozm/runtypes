@@ -105,6 +105,13 @@ public:
     }
 
     template <typename T>
+    T& get_mut()
+    {
+        validate_data_type<T>("get_mut");
+        return *reinterpret_cast<T*>(memory_);
+    }
+
+    template <typename T>
     void set(const T& t)
     {
         validate_data_type<T>("set");
